@@ -121,9 +121,16 @@ async def gql_async(query: str, variables: dict, timeout_sec: int = 10):
 
 # メンション
 def mention(part: dict) -> str:
-    for auth in part.get("user", {}).get("authorizations", []):
-        if auth.get("type") == "DISCORD" and auth.get("externalId", "").isdigit():
-            return f"<@!{auth['externalId']}>"
+    user = part.get("user")
+    if not user:
+        return part.get("gamerTag", "Unknown")
+
+    for auth in user.get("authorizations", []):
+        if auth.get("type") == "DISCORD":
+            ext_id = auth.get("externalId")
+            if ext_id and ext_id.isdigit():
+                return f"<@!{ext_id}>"
+
     return part.get("gamerTag", "Unknown")
 
 def render_with_scores(text: str, s1: Optional[int], s2: Optional[int]) -> str:
