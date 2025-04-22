@@ -286,13 +286,37 @@ class OkBtn(discord.ui.Button):
 
 # 通知処理
 async def post_announce(set_node: dict, station: str):
-    channel = bot.get_channel(DISCORD_CHANNEL_ID)
-    if not channel:
-        print("Channel not found")
+    slots = set_node.get("slots", [])
+    set_id = set_node.get("id")
+
+    # プレイヤーが2人揃っていない場合はスキップ
+    if len(slots) < 2 or not all(slot.get("entrant") for slot in slots):
+        print(f"[WARNING] 対戦者が揃っていないためスキップ: set_id = {set_id}")
         return
 
-    p1_part = set_node["slots"][0]["entrant"]["participants"][0]
-    p2_part = set_node["slots"][1]["entrant"]["participants"][0]
+    # チャンネル取得
+    channel = bot.get_channel(DISCORD_CHANNEL_ID)
+    if not channel:
+        print("[ERROR] チャンネルが取得できません。")
+        return
+
+    try:
+        p1_part = slots[0]["entrant"]["participants"][0]
+        p2_part = slots[1]["entrant"]["participants"][0]
+    except (KeyError, IndexError, TypeError) as e:
+        print(f"[WARNING] スロット情報が不完全です: {e}")
+        return
+
+    # 旧メッセージがあれば削除
+    old_msg = active_views.get(set_id, {}).get("message")
+    if old_msg:
+        try:
+            await old_msg.delete()
+            print(f"[INFO] 古いメッセージを削除: set_id = {set_id}")
+        except Exception as e:
+            print(f"[WARNING] メッセージ削除失敗: {e}")
+
+    # メンションの取得
     mention1 = mention(p1_part)
     mention2 = mention(p2_part)
 
@@ -309,13 +333,14 @@ async def post_announce(set_node: dict, station: str):
     round_text = f"🏷️ {set_node.get('fullRoundText', '不明なラウンド')}"
     content = f"{round_text}\n\n{station_text}\n\n{mention1} (0)\nvs\n{mention2} (0)"
 
+    # ビューの生成と送信
     view = ReportButtons(
-        set_id=set_node["id"],
-        p1_id=set_node["slots"][0]["entrant"]["id"],
-        p2_id=set_node["slots"][1]["entrant"]["id"]
+        set_id=set_id,
+        p1_id=slots[0]["entrant"]["id"],
+        p2_id=slots[1]["entrant"]["id"]
     )
 
-    await channel.send(
+    message = await channel.send(
         content=mention_line,
         embed=discord.Embed(description=content, color=discord.Color.blue()),
         view=view,
@@ -323,9 +348,10 @@ async def post_announce(set_node: dict, station: str):
     )
 
     bot.add_view(view)
-    active_views[set_node["id"]] = {
+    active_views[set_id] = {
         "view": view,
-        "slots": set_node["slots"]
+        "slots": slots,
+        "message": message  # メッセージを保存し，再アサイン時に削除
     }
 
 # ポーリング処理
