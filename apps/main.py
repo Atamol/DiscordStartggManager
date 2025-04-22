@@ -1,5 +1,4 @@
 import os
-from dotenv import load_dotenv
 import asyncio
 import json
 import re
@@ -8,11 +7,8 @@ import functools
 from typing import Optional
 
 import discord
-from discord.ext import tasks
-from discord.ext import commands
+from discord.ext import tasks, commands
 from discord import app_commands
-
-load_dotenv()
 
 DISCORD_BOT_TOKEN   = os.getenv("DISCORD_BOT_TOKEN")
 STARTGG_API_TOKEN   = os.getenv("STARTGG_API_TOKEN")
