@@ -59,6 +59,7 @@ query GetSets($slug: String!, $page: Int!) {
           id
           fullRoundText
           state
+          winnerId           # ← ★ここを追加
           station { number }
           games {
             winnerId
@@ -168,102 +169,61 @@ def format_result_message(action: str, preposition: str, members: list[str], rol
 
 # start.gg側から更新されたとき，Discord側も更新する
 async def update_finished_match_ui(set_node: dict):
-    print(f"[DEBUG] update_finished_match_ui CALLED for set_id = {set_node.get('id')}")
-
     set_id = set_node["id"]
-    if set_id not in active_views:
+    view_info = active_views.get(set_id)
+    if not view_info:
         return
 
-    view_info = active_views[set_id]
-    view = view_info.get("view")
     message = view_info.get("message")
+    view = view_info.get("view")
     slots = view_info.get("slots")
 
-    if not view or not message or not slots or len(slots) < 2:
+    if not message or not view or not slots or len(slots) < 2:
         return
 
     try:
-        entrant1_id = slots[0]["entrant"]["id"]
-        entrant2_id = slots[1]["entrant"]["id"]
-        tag1 = slots[0]["entrant"]["participants"][0]["gamerTag"]
-        tag2 = slots[1]["entrant"]["participants"][0]["gamerTag"]
-    except (KeyError, IndexError, TypeError):
+        entrant1 = slots[0]["entrant"]
+        entrant2 = slots[1]["entrant"]
+        entrant1_id = entrant1["id"]
+        entrant2_id = entrant2["id"]
+        name1 = entrant1["participants"][0]["gamerTag"]
+        name2 = entrant2["participants"][0]["gamerTag"]
+    except (KeyError, IndexError):
         return
 
     games = set_node.get("games")
-    embed = message.embeds[0].copy()
+    winner_id = set_node.get("winnerId")
 
+    embed = message.embeds[0].copy()
     round_text = f"🏷️ {set_node.get('fullRoundText', '不明なラウンド')}"
     station = set_node.get("station", {}).get("number", "?")
     station_text = "🖥️ **Station 1** 🎥**配信台**" if str(station) == "1" else f"🖥️ **Station {station}**"
 
-    if games is None:
-        winner_id = set_node.get("winnerId")
+    if not games:
+        # スコアが取得できないので，勝敗だけ更新
         if winner_id == entrant1_id:
-            winner_name, loser_name = tag1, tag2
+            winner, loser = name1, name2
         elif winner_id == entrant2_id:
-            winner_name, loser_name = tag2, tag1
+            winner, loser = name2, name1
         else:
             return
 
-        embed.description = (
-            "✅ **この試合は終了しました（start.ggより更新されました）**\n\n"
+        new_desc = (
+            "✅ **この試合は終了しました\n（スタッフにより処理されました）**\n\n"
             f"{round_text}\n\n"
             f"{station_text}\n\n"
-            f"{winner_name} (WIN)\n"
-            f"vs\n"
-            f"{loser_name} (LOSE)"
+            f"{winner} (**WIN**)\nvs\n{loser} (**LOSE**)"
         )
+        embed.description = new_desc
     else:
-        score1 = score2 = 0
-        for g in games:
-            if g.get("winnerId") == entrant1_id:
-                score1 += 1
-            elif g.get("winnerId") == entrant2_id:
-                score2 += 1
+        score1 = sum(1 for g in games if g.get("winnerId") == entrant1_id)
+        score2 = sum(1 for g in games if g.get("winnerId") == entrant2_id)
 
-        # 既存のスコア埋め込みロジック
-        def replace_score(text: str, score: int, n: int):
-            lines = text.splitlines()
-            count = 0
-            for i, line in enumerate(lines):
-                if "(" in line and ")" in line:
-                    lines[i] = re.sub(r"\(\d+\)", f"({score})", line, count=1)
-                    count += 1
-                    if count == n:
-                        break
-            return "\n".join(lines)
+        embed.description = render_with_scores(embed.description, score1, score2)
+        embed.description = "✅ **この試合は終了しました**\n\n" + embed.description
 
-        description = embed.description
-        description = replace_score(description, score1, 1)
-        description = replace_score(description, score2, 2)
-        embed.description = "✅ **この試合は終了しました**\n\n" + description
-
-    view.disable_all_items()
-    await message.edit(embed=embed, view=view)
-
-    # Embedを編集
-    embed = message.embeds[0].copy()
-    description = embed.description
-
-    # スコアの同期
-    def replace_score(text: str, score: int, n: int):
-        lines = text.splitlines()
-        count = 0
-        for i, line in enumerate(lines):
-            if "(" in line and ")" in line:
-                lines[i] = re.sub(r"\(\d+\)", f"({score})", line, count=1)
-                count += 1
-                if count == n:
-                    break
-        return "\n".join(lines)
-
-    updated = replace_score(description, score1, 1)
-    updated = replace_score(updated, score2, 2)
-    updated = "✅ **この試合は終了しました**\n\n" + updated
-    embed.description = updated
-
-    view.disable_all_items()
+    for item in view.children:
+        item.disabled = True
     await message.edit(embed=embed, view=view)
 
 # Discord IDの取得
@@ -381,19 +341,16 @@ class ReportButtons(discord.ui.View):
         try:
             await gql_async(MUT_REPORT_SET, payload)
         except Exception as e:
-            await inter.response.send_message(f"スタッフによって start.gg 側から入力されました。", ephemeral=True)  # "start.ggへの送信に失敗しました: {e}""
+            await inter.response.send_message(f"すでにスタッフによって処理されています。", ephemeral=True)  # "start.ggへの送信に失敗しました: {e}""
             return
 
-        self.disable_all_items()
+        # 受付終了
+        for item in self.children:
+            item.disabled = True
         embed = inter.message.embeds[0].copy()
         embed.description = "✅ **この試合は終了しました**\n\n" + embed.description
         await inter.message.edit(embed=embed, view=self)
         await inter.response.send_message("スコアを送信しました。", ephemeral=True)
-
-    # 受付終了
-    def disable_all_items(self):
-        for item in self.children:
-            item.disabled = True
 
 # スコア入力ボタン
 class ScoreBtn(discord.ui.Button):
@@ -520,6 +477,8 @@ async def poll_sets():
             station = s["station"]["number"]
             set_id = s["id"]
 
+            print(f"[DEBUG] set_id={s['id']} state={s.get('state')} type={type(s.get('state'))}")
+
             if not initial_scan_done:
                 station_map[set_id] = station
                 continue
@@ -529,7 +488,7 @@ async def poll_sets():
                 await post_announce(s, station)
 
             # start.gg側から更新されたとき，Discord側のUIも更新する
-            if s.get("state") == "COMPLETED":
+            if s.get("state") == 3:
                 await update_finished_match_ui(s)
 
         page += 1
