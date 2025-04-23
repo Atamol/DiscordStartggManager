@@ -7,8 +7,11 @@ import functools
 from typing import Optional
 
 import discord
+from discord import Embed, app_commands
 from discord.ext import tasks, commands
-from discord import app_commands
+
+from dotenv import load_dotenv
+load_dotenv()
 
 DISCORD_BOT_TOKEN   = os.getenv("DISCORD_BOT_TOKEN")
 STARTGG_API_TOKEN   = os.getenv("STARTGG_API_TOKEN")
@@ -57,6 +60,9 @@ query GetSets($slug: String!, $page: Int!) {
           fullRoundText
           state
           station { number }
+          games {
+            winnerId
+          }
           slots {
             entrant {
               id
@@ -102,7 +108,7 @@ intents.message_content = True
 intents.members = True
 bot = commands.Bot(command_prefix=";", intents=intents)
 
-# GraphQLとの通信
+# GraphQLとの通信 - sync
 def gql_sync(query: str, variables: dict):
     headers = {
         "Authorization": f"Bearer {STARTGG_API_TOKEN}",
@@ -114,6 +120,7 @@ def gql_sync(query: str, variables: dict):
         raise RuntimeError(json.dumps(data["errors"], indent=2, ensure_ascii=False))
     return data
 
+# GraphQLとの通信 - async
 async def gql_async(query: str, variables: dict, timeout_sec: int = 10):
     loop = asyncio.get_running_loop()
     fn = functools.partial(gql_sync, query, variables)
@@ -133,6 +140,7 @@ def mention(part: dict) -> str:
 
     return part.get("gamerTag", "Unknown")
 
+# スコアを更新
 def render_with_scores(text: str, s1: Optional[int], s2: Optional[int]) -> str:
     lines = text.splitlines()
     output = []
@@ -149,6 +157,134 @@ def render_with_scores(text: str, s1: Optional[int], s2: Optional[int]) -> str:
         output.append(line)
 
     return "\n".join(output)
+
+# ロール付与コマンドのフォーマット統一用
+def format_result_message(action: str, preposition: str, members: list[str], role: discord.Role) -> str:
+    if not members:
+        return f"⚠️ 該当ユーザーが見つかりませんでした。"
+
+    return f"✅ 以下の {len(members)}名 {preposition}ロール `{role.name}` を{action}しました:\n\n" + \
+           "\n".join(f"- {m}" for m in members)
+
+# start.gg側から更新されたとき，Discord側も更新する
+async def update_finished_match_ui(set_node: dict):
+    print(f"[DEBUG] update_finished_match_ui CALLED for set_id = {set_node.get('id')}")
+
+    set_id = set_node["id"]
+    if set_id not in active_views:
+        return
+
+    view_info = active_views[set_id]
+    view = view_info.get("view")
+    message = view_info.get("message")
+    slots = view_info.get("slots")
+
+    if not view or not message or not slots or len(slots) < 2:
+        return
+
+    try:
+        entrant1_id = slots[0]["entrant"]["id"]
+        entrant2_id = slots[1]["entrant"]["id"]
+        tag1 = slots[0]["entrant"]["participants"][0]["gamerTag"]
+        tag2 = slots[1]["entrant"]["participants"][0]["gamerTag"]
+    except (KeyError, IndexError, TypeError):
+        return
+
+    games = set_node.get("games")
+    embed = message.embeds[0].copy()
+
+    round_text = f"🏷️ {set_node.get('fullRoundText', '不明なラウンド')}"
+    station = set_node.get("station", {}).get("number", "?")
+    station_text = "🖥️ **Station 1** 🎥**配信台**" if str(station) == "1" else f"🖥️ **Station {station}**"
+
+    if games is None:
+        winner_id = set_node.get("winnerId")
+        if winner_id == entrant1_id:
+            winner_name, loser_name = tag1, tag2
+        elif winner_id == entrant2_id:
+            winner_name, loser_name = tag2, tag1
+        else:
+            return
+
+        embed.description = (
+            "✅ **この試合は終了しました（start.ggより更新されました）**\n\n"
+            f"{round_text}\n\n"
+            f"{station_text}\n\n"
+            f"{winner_name} (WIN)\n"
+            f"vs\n"
+            f"{loser_name} (LOSE)"
+        )
+    else:
+        score1 = score2 = 0
+        for g in games:
+            if g.get("winnerId") == entrant1_id:
+                score1 += 1
+            elif g.get("winnerId") == entrant2_id:
+                score2 += 1
+
+        # 既存のスコア埋め込みロジック
+        def replace_score(text: str, score: int, n: int):
+            lines = text.splitlines()
+            count = 0
+            for i, line in enumerate(lines):
+                if "(" in line and ")" in line:
+                    lines[i] = re.sub(r"\(\d+\)", f"({score})", line, count=1)
+                    count += 1
+                    if count == n:
+                        break
+            return "\n".join(lines)
+
+        description = embed.description
+        description = replace_score(description, score1, 1)
+        description = replace_score(description, score2, 2)
+        embed.description = "✅ **この試合は終了しました**\n\n" + description
+
+    view.disable_all_items()
+    await message.edit(embed=embed, view=view)
+
+    # Embedを編集
+    embed = message.embeds[0].copy()
+    description = embed.description
+
+    # スコアの同期
+    def replace_score(text: str, score: int, n: int):
+        lines = text.splitlines()
+        count = 0
+        for i, line in enumerate(lines):
+            if "(" in line and ")" in line:
+                lines[i] = re.sub(r"\(\d+\)", f"({score})", line, count=1)
+                count += 1
+                if count == n:
+                    break
+        return "\n".join(lines)
+
+    updated = replace_score(description, score1, 1)
+    updated = replace_score(updated, score2, 2)
+    updated = "✅ **この試合は終了しました**\n\n" + updated
+    embed.description = updated
+
+    view.disable_all_items()
+    await message.edit(embed=embed, view=view)
+
+# Discord IDの取得
+async def fetch_discord_ids_from_startgg() -> list[tuple[int, str]]:
+    data = await gql_async(GET_PARTICIPANTS_QUERY, { "slug": TOURNAMENT_SLUG })
+    all_data = []
+
+    for event in data["data"]["tournament"]["events"]:
+        for entrant in event.get("entrants", {}).get("nodes", []):
+            for participant in entrant.get("participants", []):
+                tag = participant.get("gamerTag", "Unknown")
+                user = participant.get("user")
+                if not user:
+                    continue
+                for auth in user.get("authorizations", []):
+                    if auth.get("type") == "DISCORD":
+                        ext_id = auth.get("externalId")
+                        if ext_id and ext_id.isdigit():
+                            all_data.append((int(ext_id), tag))
+
+    return all_data
 
 # Discord UI
 class ReportButtons(discord.ui.View):
@@ -245,7 +381,7 @@ class ReportButtons(discord.ui.View):
         try:
             await gql_async(MUT_REPORT_SET, payload)
         except Exception as e:
-            await inter.response.send_message(f"start.ggへの送信に失敗しました: {e}", ephemeral=True)
+            await inter.response.send_message(f"スタッフによって start.gg 側から入力されました。", ephemeral=True)  # "start.ggへの送信に失敗しました: {e}""
             return
 
         self.disable_all_items()
@@ -291,7 +427,7 @@ async def post_announce(set_node: dict, station: str):
 
     # プレイヤーが2人揃っていない場合はスキップ
     if len(slots) < 2 or not all(slot.get("entrant") for slot in slots):
-        print(f"[WARNING] 対戦者が揃っていないためスキップ: set_id = {set_id}")
+        print(f"[WARNING] 対戦者が揃っていないためスキップしました: set_id = {set_id}")
         return
 
     # チャンネル取得
@@ -310,11 +446,11 @@ async def post_announce(set_node: dict, station: str):
     # 旧メッセージがあれば削除
     old_msg = active_views.get(set_id, {}).get("message")
     if old_msg:
-        try:
+#        try:
             await old_msg.delete()
-            print(f"[INFO] 古いメッセージを削除: set_id = {set_id}")
-        except Exception as e:
-            print(f"[WARNING] メッセージ削除失敗: {e}")
+#            print(f"[INFO] 古いメッセージを削除: set_id = {set_id}")
+#        except Exception as e:
+#            print(f"[WARNING] メッセージ削除失敗: {e}")
 
     # メンションの取得
     mention1 = mention(p1_part)
@@ -387,40 +523,16 @@ async def poll_sets():
             if not initial_scan_done:
                 station_map[set_id] = station
                 continue
-
+            
             if station_map.get(set_id) != station:
                 station_map[set_id] = station
                 await post_announce(s, station)
 
+            # start.gg側から更新されたとき，Discord側のUIも更新する
+            if s.get("state") == "COMPLETED":
+                await update_finished_match_ui(s)
+
         page += 1
-
-# Discord IDの取得
-async def fetch_discord_ids_from_startgg() -> list[tuple[int, str]]:
-    data = await gql_async(GET_PARTICIPANTS_QUERY, { "slug": TOURNAMENT_SLUG })
-    all_data = []
-
-    for event in data["data"]["tournament"]["events"]:
-        for entrant in event.get("entrants", {}).get("nodes", []):
-            for participant in entrant.get("participants", []):
-                tag = participant.get("gamerTag", "Unknown")
-                user = participant.get("user")
-                if not user:
-                    continue
-                for auth in user.get("authorizations", []):
-                    if auth.get("type") == "DISCORD":
-                        ext_id = auth.get("externalId")
-                        if ext_id and ext_id.isdigit():
-                            all_data.append((int(ext_id), tag))
-
-    return all_data
-
-# ロール付与コマンドのフォーマット統一用
-def format_result_message(action: str, preposition: str, members: list[str], role: discord.Role) -> str:
-    if not members:
-        return f"⚠️ 該当ユーザーが見つかりませんでした。"
-
-    return f"✅ 以下の {len(members)}名 {preposition}ロール `{role.name}` を{action}しました:\n\n" + \
-           "\n".join(f"- {m}" for m in members)
 
 # ロール付与
 @bot.tree.command(name="assign_roles", description="大会参加者にロールを付与")
@@ -470,11 +582,14 @@ async def on_ready():
     await bot.wait_until_ready()
     try:
         synced = await bot.tree.sync()
-        print(f"✅ スラッシュコマンドを {len(synced)} 個を同期しました。")
+        print(f"✅ スラッシュコマンド {len(synced)}個 を同期しました。")
     except Exception as e:
         print(f"[ERROR] スラッシュコマンドの同期に失敗: {e}")
 
+    print(f"✅ 通知するチャンネル = {DISCORD_CHANNEL_ID}")
+
     poll_sets.start()
+
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
 
 if __name__ == "__main__":
