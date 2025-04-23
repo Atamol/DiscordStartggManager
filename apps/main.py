@@ -477,8 +477,6 @@ async def poll_sets():
             station = s["station"]["number"]
             set_id = s["id"]
 
-            print(f"[DEBUG] set_id={s['id']} state={s.get('state')} type={type(s.get('state'))}")
-
             if not initial_scan_done:
                 station_map[set_id] = station
                 continue
