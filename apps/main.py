@@ -10,6 +10,10 @@ import discord
 from discord import Embed, app_commands
 from discord.ext import tasks, commands
 
+# from dotenv import load_dotenv
+
+# load_dotenv()
+
 DISCORD_BOT_TOKEN   = os.getenv("DISCORD_BOT_TOKEN")
 STARTGG_API_TOKEN   = os.getenv("STARTGG_API_TOKEN")
 DISCORD_CHANNEL_ID  = int(os.getenv("DISCORD_CHANNEL_ID", "0"))
