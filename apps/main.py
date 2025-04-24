@@ -350,7 +350,11 @@ class ReportButtons(discord.ui.View):
         embed = inter.message.embeds[0].copy()
         embed.description = "✅ **この試合は終了しました**\n\n" + embed.description
         await inter.message.edit(embed=embed, view=self)
-        await inter.response.send_message("スコアを送信しました。", ephemeral=True)
+
+        try:
+            await inter.response.send_message("スコアを送信しました。", ephemeral=True)
+        except discord.NotFound:
+            pass
 
 # スコア入力ボタン
 class ScoreBtn(discord.ui.Button):
@@ -379,15 +383,13 @@ class OkBtn(discord.ui.Button):
 
 # 通知処理
 async def post_announce(set_node: dict, station: str):
-    slots = set_node.get("slots", [])
     set_id = set_node.get("id")
+    slots = set_node.get("slots", [])
 
-    # プレイヤーが2人揃っていない場合はスキップ
     if len(slots) < 2 or not all(slot.get("entrant") for slot in slots):
         print(f"[WARNING] 対戦者が揃っていないためスキップしました: set_id = {set_id}")
         return
 
-    # チャンネル取得
     channel = bot.get_channel(DISCORD_CHANNEL_ID)
     if not channel:
         print("[ERROR] チャンネルが取得できません。")
@@ -400,52 +402,48 @@ async def post_announce(set_node: dict, station: str):
         print(f"[WARNING] スロット情報が不完全です: {e}")
         return
 
-    # 旧メッセージがあれば削除
-    old_msg = active_views.get(set_id, {}).get("message")
-    if old_msg:
-#        try:
-            await old_msg.delete()
-#            print(f"[INFO] 古いメッセージを削除: set_id = {set_id}")
-#        except Exception as e:
-#            print(f"[WARNING] メッセージ削除失敗: {e}")
-
-    # メンションの取得
     mention1 = mention(p1_part)
     mention2 = mention(p2_part)
-
-    # Contentフォーマット
     mention_line = f"📢 {mention1} {mention2}"
 
-    # Stationフォーマット
-    if str(station) == "1":
-        station_text = "🖥️ **Station 1** 🎥**配信台**"
-    else:
-        station_text = f"🖥️ **Station {station}**"
-
-    # Descriptionフォーマット
     round_text = f"🏷️ {set_node.get('fullRoundText', '不明なラウンド')}"
+    station_text = "🖥️ **Station 1** 🎥**配信台**" if str(station) == "1" else f"🖥️ **Station {station}**"
     content = f"{round_text}\n\n{station_text}\n\n{mention1} (0)\nvs\n{mention2} (0)"
 
-    # ビューの生成と送信
+    # Viewの構築
     view = ReportButtons(
         set_id=set_id,
         p1_id=slots[0]["entrant"]["id"],
         p2_id=slots[1]["entrant"]["id"]
     )
 
-    message = await channel.send(
-        content=mention_line,
-        embed=discord.Embed(description=content, color=discord.Color.blue()),
-        view=view,
-        allowed_mentions=discord.AllowedMentions(everyone=True, users=True, roles=True)
-    )
+    # 既存のメッセージがあれば編集，なければ新規投稿
+    old_view = active_views.get(set_id)
+    if old_view and old_view.get("message"):
+        message = old_view["message"]
 
-    bot.add_view(view)
-    active_views[set_id] = {
-        "view": view,
-        "slots": slots,
-        "message": message  # メッセージを保存し，再アサイン時に削除
-    }
+        # Embedを編集
+        embed = message.embeds[0].copy()
+        lines = embed.description.splitlines()
+        lines[2] = station_text
+        embed.description = "\n".join(lines)
+
+        await message.edit(embed=embed, view=view)
+        bot.add_view(view)
+        active_views[set_id]["view"] = view
+    else:
+        message = await channel.send(
+            content=mention_line,
+            embed=discord.Embed(description=content, color=discord.Color.blue()),
+            view=view,
+            allowed_mentions=discord.AllowedMentions(everyone=True, users=True, roles=True)
+        )
+        bot.add_view(view)
+        active_views[set_id] = {
+            "view": view,
+            "slots": slots,
+            "message": message
+        }
 
 # ポーリング処理
 @tasks.loop(seconds=POLL_INTERVAL)
