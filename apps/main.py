@@ -60,7 +60,7 @@ query GetSets($slug: String!, $page: Int!) {
           id
           fullRoundText
           state
-          winnerId           # ← ★ここを追加
+          winnerId
           station { number }
           games {
             winnerId
