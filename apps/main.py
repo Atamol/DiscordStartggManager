@@ -68,6 +68,7 @@ query GetSets($slug: String!, $page: Int!) {
           slots {
             entrant {
               id
+              name
               participants {
                 gamerTag
                 user {
@@ -409,7 +410,9 @@ async def post_announce(set_node: dict, station: str):
 
     round_text = f"🏷️ {set_node.get('fullRoundText', '不明なラウンド')}"
     station_text = "🖥️ **Station 1** 🎥**配信台**" if str(station) == "1" else f"🖥️ **Station {station}**"
-    content = f"{round_text}\n\n{station_text}\n\n{mention1} (0)\nvs\n{mention2} (0)"
+    team1 = slots[0]["entrant"]["name"]
+    team2 = slots[1]["entrant"]["name"]
+    content = f"{round_text}\n\n{station_text}\n\n{mention1} (0)\nvs\n{mention2} (0)" if len(slots[0]["entrant"]["participants"]) == 1 and len(slots[1]["entrant"]["participants"]) == 1 else f"{round_text}\n\n{station_text}\n\n{team1} (0)\nvs\n{team2} (0)"
 
     # Viewの構築
     view = ReportButtons(
