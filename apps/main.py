@@ -18,6 +18,7 @@ DISCORD_BOT_TOKEN   = os.getenv("DISCORD_BOT_TOKEN")
 STARTGG_API_TOKEN   = os.getenv("STARTGG_API_TOKEN")
 DISCORD_CHANNEL_ID  = int(os.getenv("DISCORD_CHANNEL_ID", "0"))
 TOURNAMENT_SLUG     = os.getenv("TOURNAMENT_SLUG")
+STREAM_NUMBER   = int(os.getenv("STREAM_NUMBER", "1"))
 
 GQL_ENDPOINT        = "https://api.start.gg/gql/alpha"
 POLL_INTERVAL       = 2
@@ -199,7 +200,7 @@ async def update_finished_match_ui(set_node: dict):
     embed = message.embeds[0].copy()
     round_text = f"🏷️ {set_node.get('fullRoundText', '不明なラウンド')}"
     station = set_node.get("station", {}).get("number", "?")
-    station_text = "🖥️ **Station 1** 🎥**配信台**" if str(station) == "1" else f"🖥️ **Station {station}**"
+    station_text = "🖥️ **Station 1** 🎥**配信台**" if str(station) == "1" else f"🖥️ **Station {station}** 🎥**サブ配信台**" if station <= STREAM_NUMBER else f"🖥️ **Station {station}**"
 
     if not games:
         # スコアが取得できないので，勝敗だけ更新
@@ -409,7 +410,7 @@ async def post_announce(set_node: dict, station: str):
     mention_line = f"📢 {mention1} {mention2}"
 
     round_text = f"🏷️ {set_node.get('fullRoundText', '不明なラウンド')}"
-    station_text = "🖥️ **Station 1** 🎥**配信台**" if str(station) == "1" else f"🖥️ **Station {station}**"
+    station_text = "🖥️ **Station 1** 🎥**配信台**" if str(station) == "1" else f"🖥️ **Station {station}** 🎥**サブ配信台**" if int(station) <= STREAM_NUMBER else f"🖥️ **Station {station}**"
     team1 = slots[0]["entrant"]["name"]
     team2 = slots[1]["entrant"]["name"]
     content = f"{round_text}\n\n{station_text}\n\n{mention1} (0)\nvs\n{mention2} (0)" if len(slots[0]["entrant"]["participants"]) == 1 and len(slots[1]["entrant"]["participants"]) == 1 else f"{round_text}\n\n{station_text}\n\n{team1} (0)\nvs\n{team2} (0)"
