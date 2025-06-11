@@ -502,16 +502,32 @@ async def assign_roles(interaction: discord.Interaction, role: discord.Role):
     guild = interaction.guild
 
     assigned = []
+    failed = []
+
     for uid, gamerTag in user_pairs:
         member = guild.get_member(uid)
-        if member:
+
+        # キャッシュにいない場合はfetchで取得
+        if member is None:
             try:
-                await member.add_roles(role, reason="start.gg上の参加者にロール付与")
-                assigned.append(gamerTag)
-            except Exception:
-                pass
+                member = await guild.fetch_member(uid)
+            except discord.NotFound:
+                failed.append((gamerTag, "NotFound"))
+                continue
+            except discord.HTTPException as e:
+                failed.append((gamerTag, f"HTTPError: {e}"))
+                continue
+
+        try:
+            await member.add_roles(role, reason="start.gg上の参加者にロール付与")
+            assigned.append(gamerTag)
+        except Exception as e:
+            failed.append((gamerTag, f"RoleError: {e}"))
 
     msg = format_result_message("付与", "に", assigned, role)
+    if failed:
+        msg += f"\n\n⚠️ ロール付与に失敗した参加者 {len(failed)}名:\n" + "\n".join(f"- {g} ({reason})" for g, reason in failed)
+
     await interaction.followup.send(msg)
 
 # ロール削除
