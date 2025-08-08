@@ -13,11 +13,22 @@ from discord.ext import tasks, commands
 from dotenv import load_dotenv
 load_dotenv()
 
-DISCORD_BOT_TOKEN   = os.getenv("DISCORD_BOT_TOKEN")
-STARTGG_API_TOKEN   = os.getenv("STARTGG_API_TOKEN")
-DISCORD_CHANNEL_ID  = int(os.getenv("DISCORD_CHANNEL_ID", "0"))
-TOURNAMENT_SLUG     = os.getenv("TOURNAMENT_SLUG")
-STREAM_NUMBER   = int(os.getenv("STREAM_NUMBER", "1"))
+DISCORD_BOT_TOKEN  = os.getenv("DISCORD_BOT_TOKEN")
+STARTGG_API_TOKEN  = os.getenv("STARTGG_API_TOKEN")
+DISCORD_CHANNEL_ID = int(os.getenv("DISCORD_CHANNEL_ID", "0"))
+TOURNAMENT_SLUG    = os.getenv("TOURNAMENT_SLUG")
+MAX_SCORE          = int(os.getenv("MAX_SCORE", "3"))
+STREAM_NUMBER      = int(os.getenv("STREAM_NUMBER", "1"))
+
+REQUIRED = {
+    "DISCORD_BOT_TOKEN": DISCORD_BOT_TOKEN,
+    "STARTGG_API_TOKEN": STARTGG_API_TOKEN,
+    "DISCORD_CHANNEL_ID": os.getenv("DISCORD_CHANNEL_ID"),
+    "TOURNAMENT_SLUG": TOURNAMENT_SLUG,
+}
+missing = [k for k, v in REQUIRED.items() if not v or str(v).strip() == ""]
+if missing:
+    raise RuntimeError(f"Missing required env vars: {', '.join(missing)}")
 
 GQL_ENDPOINT        = "https://api.start.gg/gql/alpha"
 POLL_INTERVAL       = 2
