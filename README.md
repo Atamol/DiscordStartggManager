@@ -1,4 +1,4 @@
-[[English Ver.]](https://github.com/Atamol/DiscordStartggManager/blob/main/README-EN.md)
+[English Ver.](https://github.com/Atamol/DiscordStartggManager/blob/main/README-EN.md)
 
 # DEMO
 
