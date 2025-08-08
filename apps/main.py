@@ -210,8 +210,8 @@ async def update_finished_match_ui(set_node: dict):
     else:
         station_text = f"🖥️ **Station {station_i}**"
 
+    # スコアが取得できないので，勝敗だけ更新
     if not games:
-        # スコアが取得できないので，勝敗だけ更新
         if winner_id == entrant1_id:
             winner, loser = name1, name2
         elif winner_id == entrant2_id:
@@ -236,6 +236,9 @@ async def update_finished_match_ui(set_node: dict):
     for item in view.children:
         item.disabled = True
     await message.edit(embed=embed, view=view)
+
+    # 不要なオブジェクトを開放
+    active_views.pop(set_id, None)
 
 # Discord IDの取得
 async def fetch_discord_ids_from_startgg() -> list[tuple[int, str]]:
@@ -366,6 +369,9 @@ class ReportButtons(discord.ui.View):
             await inter.response.send_message("スコアを送信しました。", ephemeral=True)
         except discord.NotFound:
             pass
+
+        # 不要なオブジェクトを開放
+        active_views.pop(self.set_id, None)
 
 # スコア入力ボタン
 class ScoreBtn(discord.ui.Button):
