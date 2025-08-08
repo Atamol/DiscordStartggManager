@@ -479,11 +479,13 @@ async def poll_sets():
             data = await gql_async(QUERY_SETS, {"slug": TOURNAMENT_SLUG, "page": page})
         except Exception as e:
             print("GraphQL error:", e)
-            return
+            await asyncio.sleep(2)
+            break
 
         if "data" not in data:
             print("GraphQL: data missing", data.get("errors"))
-            return
+            await asyncio.sleep(2)
+            break
 
         sets = [
             s for ev in data["data"]["tournament"]["events"]
