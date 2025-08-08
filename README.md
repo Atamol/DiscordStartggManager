@@ -4,7 +4,7 @@ https://github.com/user-attachments/assets/fd001337-2c11-4234-ad85-2ae82752e80b
 
 # DiscordStartggManager
 
-DiscordStartggManager は，Discord 上で start.gg トーナメントの試合進行をスムーズにサポートするための BOT です．
+DiscordStartggManager は，Discord 上で start.gg トーナメントの試合進行をスムーズにサポートするための Bot です．
 
 | 機能 | 説明 |
 | --- | --- |
@@ -20,7 +20,7 @@ DiscordStartggManager は，Discord 上で start.gg トーナメントの試合�
 
 現在，このBotを利用するには，利用者の環境でこのBotをホスティングしていただく必要があります．
 
-> 今後はBotをサーバーへ招待し，Web GUIなどから設定するだけで使用できるようにし，さらに参加人数が多い場合でも機能するように最適化を行っていく予定です．協力者を募集しています！
+> 将来的に，Webから簡単に設定を行えるようにしたり，大型大会での運用もできるように最適化させることが目標に開発を勧めています．協力者を募集しています！
 
 導入が難しい場合は個別のサポートを行っているので，[X (Twitter)](https://x.com/Atamol_ssb)からお気軽にご相談ください．
 
@@ -44,5 +44,6 @@ DiscordStartggManager は，Discord 上で start.gg トーナメントの試合�
 
 # ❗ 協力者を募集しています
 このプロジェクトは，一般公開に向けて個人で地道に開発を進めています．  
+将来的に，Webから簡単に設定を行えるようにしたり，大型大会での運用もできるように最適化させることが目標です．
 バグ報告や機能追加の提案など，どのような形でもご協力いただけると嬉しいです．  
-開発者からのPull Requestも歓迎しております．
+開発者からのプルリクエストも歓迎しております．
