@@ -280,13 +280,13 @@ class ReportButtons(discord.ui.View):
         self.p2_id = p2_id
         self.s1: Optional[int] = 0
         self.s2: Optional[int] = 0
-
-        # プレイヤー1（上段）
-        for s in range(4):  # 0,1,2,3
+        
+        # プレイヤー1(上段)
+        for s in range(MAX_SCORE + 1):
             self.add_item(ScoreBtn(1, s, row=0))
 
-        # プレイヤー2（下段）
-        for s in range(4):  # 0,1,2,3
+        # プレイヤー2 (下段)
+        for s in range(MAX_SCORE + 1):
             self.add_item(ScoreBtn(2, s, row=1))
 
         # OK
