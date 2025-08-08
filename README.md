@@ -7,6 +7,7 @@ https://github.com/user-attachments/assets/fd001337-2c11-4234-ad85-2ae82752e80b
 # DiscordStartggManager
 
 DiscordStartggManager は，Discord 上で start.gg トーナメントの試合進行をスムーズにサポートするための Bot です．
+大乱闘スマッシュブラザーズシリーズを想定して作られています．
 
 | 機能 | 説明 |
 | --- | --- |
