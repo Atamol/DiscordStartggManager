@@ -9,7 +9,7 @@ https://github.com/user-attachments/assets/fd001337-2c11-4234-ad85-2ae82752e80b
 # DiscordStartggManager
 
 **DiscordStartggManager** is a Discord bot designed to make running tournaments on [start.gg](https://start.gg/) smoother and more efficient.  
-This project’s made with the Super Smash Bros. series in mind.
+This project’s made with the **Super Smash Bros.** series in mind.
 
 | Feature | Description |
 | --- | --- |
