@@ -1,4 +1,4 @@
-[日本語 / Jpanese Ver.](https://github.com/Atamol/DiscordStartggManager/blob/main/README.md)
+[日本語 / Japanese Ver.](https://github.com/Atamol/DiscordStartggManager/blob/main/README.md)
 
 Translated by OpenAI.
 
