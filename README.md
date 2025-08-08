@@ -30,8 +30,9 @@ DiscordStartggManager は，Discord 上で start.gg トーナメントの試合�
 2. [Diescord Developer Portal](https://discord.com/developers/applications)から，DiscordのBotを作成し，権限の設定を行います．
 3. 作成したBotを運用したいDiscordへ招待します．
 4. `.env`に，必要な情報を設定します．
-5. Dockerコンテナをビルドします．
-6. コンテナを実行します．
+5. 13・14行目の`from dotenv import load_dotenv`，`load_dotenv()`をコメントアウトします．
+6. Dockerコンテナをビルドします．
+7. コンテナを実行します．
 
 ## 2. ターミナルから起動する方法
 
@@ -39,8 +40,7 @@ DiscordStartggManager は，Discord 上で start.gg トーナメントの試合�
 2. [Diescord Developer Portal](https://discord.com/developers/applications)から，DiscordのBotを作成し，権限の設定を行います．
 3. 作成したBotを運用したいDiscordへ招待します．
 4. `.env`に，必要な情報を設定します．
-5. 13・14行目の`from dotenv import load_dotenv`，`load_dotenv()`のコメントアウトを外します．
-6. `apps/main.py`を実行します．
+5. `apps/main.py`を実行します．
 
 # ❗ 協力者を募集しています
 このプロジェクトは，一般公開に向けて個人で地道に開発を進めています．  
