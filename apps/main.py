@@ -24,7 +24,7 @@ POLL_INTERVAL       = 2
 
 initial_scan_done = False
 station_map: dict[str, str] = {}
-active_views: dict[str, dict] = {}  # {set_id: {view, slots}}
+active_views: dict[str, dict] = {}  # {set_id: {view, slots}}えｍ
 
 # GraphQL: 参加者の取得
 GET_PARTICIPANTS_QUERY = """
@@ -198,8 +198,17 @@ async def update_finished_match_ui(set_node: dict):
 
     embed = message.embeds[0].copy()
     round_text = f"🏷️ {set_node.get('fullRoundText', '不明なラウンド')}"
-    station = set_node.get("station", {}).get("number", "?")
-    station_text = "🖥️ **Station 1** 🎥**配信台**" if str(station) == "1" else f"🖥️ **Station {station}** 🎥**サブ配信台**" if station <= STREAM_NUMBER else f"🖥️ **Station {station}**"
+    station_val = set_node.get("station", {}).get("number", "?")
+    try:
+        station_i = int(station_val)
+    except (TypeError, ValueError):
+        station_i = 9999
+    if station_i == 1:
+        station_text = "🖥️ **Station 1** 🎥**配信台**"
+    elif station_i <= STREAM_NUMBER:
+        station_text = f"🖥️ **Station {station_i}** 🎥**サブ配信台**"
+    else:
+        station_text = f"🖥️ **Station {station_i}**"
 
     if not games:
         # スコアが取得できないので，勝敗だけ更新
@@ -409,6 +418,16 @@ async def post_announce(set_node: dict, station: str):
     mention_line = f"📢 {mention1} {mention2}"
 
     round_text = f"🏷️ {set_node.get('fullRoundText', '不明なラウンド')}"
+    try:
+        station_i = int(station)
+    except (TypeError, ValueError):
+        station_i = 9999
+    if station_i == 1:
+        station_text = "🖥️ **Station 1** 🎥**配信台**"
+    elif station_i <= STREAM_NUMBER:
+        station_text = f"🖥️ **Station {station_i}** 🎥**サブ配信台**"
+    else:
+        station_text = f"🖥️ **Station {station_i}**"
     station_text = "🖥️ **Station 1** 🎥**配信台**" if str(station) == "1" else f"🖥️ **Station {station}** 🎥**サブ配信台**" if int(station) <= STREAM_NUMBER else f"🖥️ **Station {station}**"
     team1 = slots[0]["entrant"]["name"]
     team2 = slots[1]["entrant"]["name"]
