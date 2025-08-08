@@ -3,7 +3,7 @@ version: '3.8'
 services:
   bot:
     build: .
-    container_name: pochisumabot
+    container_name: discordstartggmanager
     env_file:
       - .env
     volumes:
