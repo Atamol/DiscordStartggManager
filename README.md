@@ -12,7 +12,7 @@ DiscordStartggManager は，Discord 上で start.gg トーナメントの試合�
 | 🔘 スコア入力機能	| Discord上で，ボタンからスコアの入力ができます |
 | ✅ 勝敗確定・完了表示	| スコアを送信すると，試合が終了としてマークされ，受付が締め切られます |
 | 🖥️ 対戦台の再登録にも対応	| 台番号が変更された場合，Discordの投稿が自動的に編集されます |
-| 👥 参加者へのロール付与	| トナメ参加者に対して自動的にロールを付与・削除できます（`@everyone`による不参加者へのメンションを防げます） |
+| 👥 参加者へのロール付与	| トナメ参加者に対して自動的にロールを付与・削除できます（`@everyone`による不参加者へのメンションの防止） |
 
 # 導入方法
 
@@ -20,9 +20,9 @@ DiscordStartggManager は，Discord 上で start.gg トーナメントの試合�
 
 現在，このBotを利用するには，利用者の環境でこのBotをホスティングしていただく必要があります．
 
-> 今後はBotをサーバーへ招待し，Web GUIなどから設定するだけで使用できるようにする予定です．協力者を募集しています！
+> 今後はBotをサーバーへ招待し，Web GUIなどから設定するだけで使用できるようにし，さらに参加人数が多い場合でも機能するように最適化を行っていく予定です．協力者を募集しています！
 
-導入が難しい場合は，VCなどを用いたサポートを一時的に行っているので，[X (Twitter)](https://x.com/Atamol_ssb)からお気軽にご相談ください．
+導入が難しい場合は個別のサポートを行っているので，[X (Twitter)](https://x.com/Atamol_ssb)からお気軽にご相談ください．
 
 ## 1. Dockerを使う方法
 
@@ -39,6 +39,8 @@ DiscordStartggManager は，Discord 上で start.gg トーナメントの試合�
 2. [Diescord Developer Portal](https://discord.com/developers/applications)から，DiscordのBotを作成し，権限の設定を行います．
 3. 作成したBotを運用したいDiscordへ招待します．
 4. `.env`に，必要な情報を設定します．
+5. 13・14行目の`from dotenv import load_dotenv`，`load_dotenv()`のコメントアウトを外します．
+6. `apps/main.py`を実行します．
 
 # ❗ 協力者を募集しています
 このプロジェクトは，一般公開に向けて個人で地道に開発を進めています．  
