@@ -194,7 +194,7 @@ jobs:
           esac
 
           # Build Discord embed payload (keeps it clean and under 2000 chars)
-          JSON=$(jq -n \
+          JSON=$(jq -cn \
             --arg username "GitHub" \
             --arg title "$TITLE" \
             --arg desc "$DESC" \
