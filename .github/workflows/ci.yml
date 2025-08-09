@@ -51,6 +51,7 @@ jobs:
           esc() { jq -Rsa . <<< "${1:-}"; }  # JSON escape helper
 
           case "$EVNAME" in
+
             push)
                           COMMITS=$(echo "$EVENT" | jq -r '.commits[]? | "- [`\(.id[0:7])`]
             (\(.url)) \(.message|gsub("\r?\n";" "))"')
@@ -96,9 +97,9 @@ jobs:
               FIELDS_JSON=$(jq -n \
                 --arg head "$HEAD" --arg base "$BASE" --arg status "$STATUS" \
                 '[{
-                  "name": "From", "value": "`" + $head + "`", "inline": true
+                  "name": "From", "value": "`\($head)`", "inline": true
                 }, {
-                  "name": "To", "value": "`" + $base + "`", "inline": true
+                  "name": "To", "value": "`\($base)`", "inline": true
                 }, {
                   "name": "Status", "value": $status, "inline": true
                 }]')
@@ -138,12 +139,10 @@ jobs:
               FIELDS_JSON=$(jq -n \
                 --arg tag "$TAG" \
                 '[{
-                  "name": "Tag", "value": "`" + $tag + "`", "inline": true
+                  "name": "Tag", "value": "`\($tag)`", "inline": true
                 }]')
               ;;
             
-            # コメント系 (本文をdescriptionに入れる)
-
             issue_comment | pull_request_review_comment | discussion_comment)
               BODY=$(echo "$EVENT" | jq -r '.comment.body' | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g')
               CURL=$(echo "$EVENT" | jq -r '.comment.html_url')
@@ -163,16 +162,13 @@ jobs:
               TITLE="New Comment by $ACTOR"
               URL="$CURL"
               COLOR=10181046 # purple
-              # 本文が長い可能性があるのでdescriptionに入れる
               DESCRIPTION=$(printf "%s" "$BODY" | cut -c 1-1500)$(if [ $(printf "%s" "$BODY" | wc -c) -gt 1500 ]; then echo "..."; fi)
               FIELDS_JSON=$(jq -n \
                 --arg ctx_title "$CONTEXT_TITLE" \
                 --arg ctx_url "$CONTEXT_URL" \
-                '[{ "name": "In Response To", "value": "[" + $ctx_title + "](" + $ctx_url + ")" }]')
+                '[{ "name": "In Response To", "value": "[\($ctx_title)](\($ctx_url))" }]')
               ;;
 
-            # シンプルなイベント (Fieldsなし)
-            
             create)
               TITLE="Created $(echo "$EVENT" | jq -r '.ref_type'): $(echo "$EVENT" | jq -r '.ref')"
               DESCRIPTION="Created by **$ACTOR**."
@@ -200,8 +196,6 @@ jobs:
               DESCRIPTION="**$ACTOR** starred **[$REPO]($URL_REPO)**."
               ;;
 
-            # 未定義のマイナーイベント用のフォールバック
-            
             *)
               TITLE="Event: $EVNAME"
               DESCRIPTION="An unhandled event was triggered by **$ACTOR**."
@@ -210,8 +204,6 @@ jobs:
               ;;
           esac
 
-          # 組み立てた情報から最終的なJSONペイロードを生成
-
           FINAL_JSON=$(jq -cn \
             --arg username "GitHub" \
             --arg title "$TITLE" \
@@ -219,6 +211,7 @@ jobs:
             --arg url "$URL" \
             --argjson color "$COLOR" \
             --argjson fields "$FIELDS_JSON" \
+            --arg repo_name "$REPO" \
             '{
               "username": $username,
               "embeds": [{
@@ -227,7 +220,7 @@ jobs:
                 "url": $url,
                 "color": $color,
                 "fields": $fields,
-                "footer": { "text": $ENV.REPO },
+                "footer": { "text": $repo_name },
                 "timestamp": now | todateiso8601
               }]
             }')
