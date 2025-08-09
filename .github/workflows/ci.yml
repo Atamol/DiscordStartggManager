@@ -55,7 +55,7 @@ jobs:
                           COMMITS=$(echo "$EVENT" | jq -r '.commits[]? | "- [`\(.id[0:7])`]
             (\(.url)) \(.message|gsub("\r?\n";" "))"')
                           [ -z "$COMMITS" ] && COMMITS="No new commits."
-                          
+
                           TITLE="Push to $REFNAME"
                           URL="$URL_REPO/commits/$REFNAME"
                           COLOR=3066993 # green
@@ -66,7 +66,7 @@ jobs:
                             '[{
                               "name": "Compare", "value": "[View Changes](\($compare_url))", "inline": true
                             }, {
-                              "name": "Commits (" + ($commits | split("\n") | length | tostring) + ")",
+                              "name": "Commits (\($commits | split("\n") | length))",
                               "value": (if $commits == "No new commits." then $commits else $commits end)
                             }]')
                           ;;
