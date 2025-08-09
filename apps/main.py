@@ -271,6 +271,29 @@ async def fetch_discord_ids_from_startgg() -> list[tuple[int, str]]:
 
     return all_data
 
+# フォールバック
+class FallbackScoreBtn(discord.ui.Button):
+    def __init__(self, player: int, score: int, row: int):
+        super().__init__(label=str(score), style=discord.ButtonStyle.secondary, custom_id=f"s{player}_{score}", row=row)
+    async def callback(self, inter: discord.Interaction):
+        await inter.response.send_message("このボタンは再起動により無効になりました。最新の投稿をご利用ください。", ephemeral=True)
+
+class FallbackOkBtn(discord.ui.Button):
+    def __init__(self, row: int):
+        super().__init__(label="OK", style=discord.ButtonStyle.success, custom_id="ok", row=row)
+    async def callback(self, inter: discord.Interaction):
+        await inter.response.send_message("このボタンは再起動により無効になりました。最新の投稿をご利用ください。", ephemeral=True)
+
+class FallbackReportView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        for s in range(MAX_SCORE + 1):
+            self.add_item(FallbackScoreBtn(1, s, row=0))
+        for s in range(MAX_SCORE + 1):
+            self.add_item(FallbackScoreBtn(2, s, row=1))
+        self.add_item(FallbackOkBtn(row=2))
+
+
 # Discord UI
 class ReportButtons(discord.ui.View):
     def __init__(self, set_id: str, p1_id: int, p2_id: int):
@@ -280,7 +303,7 @@ class ReportButtons(discord.ui.View):
         self.p2_id = p2_id
         self.s1: Optional[int] = 0
         self.s2: Optional[int] = 0
-        
+
         # プレイヤー1(上段)
         for s in range(MAX_SCORE + 1):
             self.add_item(ScoreBtn(1, s, row=0))
@@ -588,6 +611,12 @@ async def remove_roles(interaction: discord.Interaction, role: discord.Role):
 
     msg = format_result_message("削除", "から", removed, role)
     await interaction.followup.send(msg)
+
+# 再起動後，旧メッセージ上のカスタムID (s1_*, s2_*, ok) が押されたときの安全弁
+async def setup_hook():
+    bot.add_view(FallbackReportView())
+
+bot.setup_hook = setup_hook
 
 # 起動処理
 @bot.event
