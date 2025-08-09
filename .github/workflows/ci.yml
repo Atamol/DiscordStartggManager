@@ -61,7 +61,7 @@ jobs:
               
               TITLE="[${REPO}] ${COMMIT_COUNT} new commits to ${REFNAME}"
               URL=$COMPARE_URL
-              DESCRIPTION=$(echo "$EVENT" | jq -r '.commits[]? | "- [`\(.id[0:7])`](\(.url)) \(.message|gsub("\r?\n";" "))"')
+              DESCRIPTION=$(echo "$EVENT" | jq -r '.commits[]? | "- [\(.id[0:7])](\(.url)) \(.message|gsub("\r?\n";" "))"')
               [ -z "$DESCRIPTION" ] && DESCRIPTION="No new commits."
               COLOR=2829617
               ;;
