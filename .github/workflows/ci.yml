@@ -56,9 +56,9 @@ jobs:
                           COMMIT_COUNT=$(echo "$EVENT" | jq '.commits | length')
                           COMPARE_URL=$(echo "$EVENT" | jq -r '.compare')
 
-                          TITLE_LINE="**[[${REPO}:${REFNAME}] ${COMMIT_COUNT} new commits](${COMPARE_URL})**"
+                          TITLE_LINE="### [${REPO}:${REFNAME}] ${COMMIT_COUNT} new commits](${COMPARE_URL})"
 
-                          AUTHOR_LINE="by ${ACTOR}"
+                          AUTHOR_LINE="_by ${ACTOR}_"
 
                           COMMIT_LIST=$(echo "$EVENT" | jq -r '.commits[]? | "- [`\(.id[0:7])`](\(.url))\n  \(.message|gsub("\r?\n";" "))"')
                           [ -z "$COMMIT_LIST" ] && COMMIT_LIST="No new commits."
