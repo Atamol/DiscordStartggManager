@@ -293,7 +293,6 @@ class FallbackReportView(discord.ui.View):
             self.add_item(FallbackScoreBtn(2, s, row=1))
         self.add_item(FallbackOkBtn(row=2))
 
-
 # Discord UI
 class ReportButtons(discord.ui.View):
     def __init__(self, set_id: str, p1_id: int, p2_id: int):
