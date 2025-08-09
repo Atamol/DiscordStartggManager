@@ -54,24 +54,21 @@ jobs:
 
             push)
                           COMMIT_COUNT=$(echo "$EVENT" | jq '.commits | length')
-                          
-                          COMMITS=$(echo "$EVENT" | jq -r '.commits[]? | "- [`\(.id[0:7])`](\(.url))\n  \(.message|gsub("\r?\n";" "))"')
-                          [ -z "$COMMITS" ] && COMMITS="No new commits."
+                          COMPARE_URL=$(echo "$EVENT" | jq -r '.compare')
 
-                          TITLE="Push to $REFNAME"
-                          URL="$URL_REPO/commits/$REFNAME"
-                          COLOR=3066993 # green
-                          DESCRIPTION="**[$REPO]($URL_REPO)** was updated by **$ACTOR**."
-                          FIELDS_JSON=$(jq -n \
-                            --arg commits "$COMMITS" \
-                            --arg commit_count "$COMMIT_COUNT" \
-                            --arg compare_url "$(echo "$EVENT" | jq -r '.compare')" \
-                            '[{
-                              "name": "Compare", "value": "[View Changes](\($compare_url))", "inline": true
-                            }, {
-                              "name": "Commits (\($commit_count))",
-                              "value": $commits
-                            }]')
+                          TITLE_LINE="[[${REPO}:${REFNAME}] ${COMMIT_COUNT} new commits](${COMPARE_URL})"
+
+                          AUTHOR_LINE="by ${ACTOR}"
+
+                          COMMIT_LIST=$(echo "$EVENT" | jq -r '.commits[]? | "- [`\(.id[0:7])`](\(.url))\n  \(.message|gsub("\r?\n";" "))"')
+                          [ -z "$COMMIT_LIST" ] && COMMIT_LIST="No new commits."
+
+                          DESCRIPTION=$(printf "%s\n%s\n\n%s" "$TITLE_LINE" "$AUTHOR_LINE" "$COMMIT_LIST")
+
+                          TITLE=""
+                          URL=""
+                          FIELDS_JSON='[]'
+                          COLOR=2829617 # Discordのデフォルトに近いグレー
                           ;;
                                 
             pull_request)
