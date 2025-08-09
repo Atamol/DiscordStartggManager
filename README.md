@@ -9,6 +9,8 @@ https://github.com/user-attachments/assets/fd001337-2c11-4234-ad85-2ae82752e80b
 **DiscordStartggManager** は，Discord 上で start.gg トーナメントの試合進行をスムーズにサポートするための Bot です．  
 主に**大乱闘スマッシュブラザーズシリーズ**を想定して作られています．
 
+### [ユーザー・開発者向けDiscord](https://discord.gg/VtWxvdXz5H)
+
 | 機能 | 説明 |
 | --- | --- |
 | 🎮 試合通知機能	| start.gg上で対戦台が設定されると，Discordにメンション付き対戦カードを送信します |
@@ -25,7 +27,7 @@ https://github.com/user-attachments/assets/fd001337-2c11-4234-ad85-2ae82752e80b
 
 > もっと簡単に使っていただけるよう，がんばって開発を勧めています．協力者を募集しています！
 
-導入が難しい場合は個別のサポートを行っているので，[X (Twitter)](https://x.com/Atamol_ssb)からお気軽にご相談ください．
+導入が難しい場合は個別のサポートを行っているので，[公式Discord](https://discord.gg/VtWxvdXz5H)からお気軽にご相談ください．
 
 ## 1. Dockerを使う方法
 
@@ -47,6 +49,9 @@ https://github.com/user-attachments/assets/fd001337-2c11-4234-ad85-2ae82752e80b
 
 # ❗ 協力者を募集しています
 このプロジェクトは，一般公開に向けて個人で地道に開発を進めています．  
+
+→ [公式Discord](https://discord.gg/VtWxvdXz5H)  
+
 将来的に，Webから簡単に設定を行えるようにしたり，大型大会での運用もできるように最適化させることが目標です．
 バグ報告や機能追加の提案など，どのような形でもご協力いただけると嬉しいです．  
 開発者からのプルリクエストも歓迎しております．
