@@ -1,0 +1,212 @@
+name: Notify Discord (repo activity)
+
+on:
+  push:
+  pull_request:
+    types: [opened, reopened, closed, synchronize, ready_for_review]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, closed, reopened, labeled, unlabeled, assigned, unassigned]
+  issue_comment:
+    types: [created]
+  release:
+    types: [published, created, prereleased, released, edited]
+  discussion:
+    types: [created, answered, locked, unlocked]
+  discussion_comment:
+    types: [created]
+  create:  # branch/tag created
+  delete:  # branch/tag deleted
+  fork:
+  watch:   # starred (type: started)
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      EVNAME: ${{ github.event_name }}
+      REPO: ${{ github.repository }}
+      ACTOR: ${{ github.actor }}
+      REF: ${{ github.ref }}
+      REFNAME: ${{ github.ref_name }}
+      EVENT: ${{ toJson(github.event) }}
+      SHA: ${{ github.sha }}
+      URL_REPO: https://github.com/${{ github.repository }}
+    steps:
+      - name: "Guard: webhook secret must exist"
+        run: |
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "Missing secrets.DISCORD_WEBHOOK"; exit 1
+          fi
+
+      - name: Build message
+        id: build
+        run: |
+          set -euo pipefail
+
+          esc() { jq -Rsa . <<< "${1:-}"; }  # JSON escape helper
+
+          case "$EVNAME" in
+            push)
+              COMMITS=$(echo "$EVENT" | jq -r '.commits[]? | "- `\(.id[0:7])` \(.message|gsub("\r?\n";" ")) (by \(.author.username // .author.name))"')
+              [ -z "$COMMITS" ] && COMMITS="(no commit details)"
+              TITLE="Push to $REFNAME"
+              DESC="**$REPO** was updated by **$ACTOR** on \`$REFNAME\`:\n$COMMITS\n\nCompare: $(echo "$EVENT" | jq -r '.compare')"
+              COLOR=3066993 # green
+              URL="$URL_REPO/commits/$REFNAME"
+              ;;
+
+            pull_request)
+              ACTION=$(echo "$EVENT" | jq -r '.action')
+              PRNUM=$(echo "$EVENT" | jq -r '.number')
+              PRTITLE=$(echo "$EVENT" | jq -r '.pull_request.title')
+              PRURL=$(echo "$EVENT" | jq -r '.pull_request.html_url')
+              MERGED=$(echo "$EVENT" | jq -r '.pull_request.merged')
+              BASE=$(echo "$EVENT" | jq -r '.pull_request.base.ref')
+              HEAD=$(echo "$EVENT" | jq -r '.pull_request.head.ref')
+              TITLE="PR #$PRNUM $ACTION"
+              if [ "$ACTION" = "closed" ] && [ "$MERGED" = "true" ]; then
+                TITLE="PR #$PRNUM merged"
+                COLOR=3447003 # blue
+              else
+                COLOR=15105570 # orange
+              fi
+              DESC="**$PRTITLE**\n\`$HEAD\` → \`$BASE\`\n$PRURL"
+              URL="$PRURL"
+              ;;
+
+            pull_request_review)
+              ACTION=$(echo "$EVENT" | jq -r '.action')
+              PRNUM=$(echo "$EVENT" | jq -r '.pull_request.number')
+              STATE=$(echo "$EVENT" | jq -r '.review.state')
+              PRURL=$(echo "$EVENT" | jq -r '.pull_request.html_url')
+              TITLE="PR #$PRNUM review $ACTION ($STATE)"
+              DESC="$PRURL"
+              COLOR=10181046 # purple
+              URL="$PRURL"
+              ;;
+
+            pull_request_review_comment)
+              PRNUM=$(echo "$EVENT" | jq -r '.pull_request.number')
+              BODY=$(echo "$EVENT" | jq -r '.comment.body' | sed ':a;N;$!ba;s/\n/\\n/g')
+              URLC=$(echo "$EVENT" | jq -r '.comment.html_url')
+              TITLE="PR #$PRNUM review comment"
+              DESC="$(printf "%s" "$BODY")\n$URLC"
+              COLOR=10181046
+              URL="$URLC"
+              ;;
+
+            issues)
+              ACTION=$(echo "$EVENT" | jq -r '.action')
+              NUM=$(echo "$EVENT" | jq -r '.issue.number')
+              TITLE_ISS=$(echo "$EVENT" | jq -r '.issue.title')
+              IURL=$(echo "$EVENT" | jq -r '.issue.html_url')
+              TITLE="Issue #$NUM $ACTION"
+              DESC="**$TITLE_ISS**\n$IURL"
+              COLOR=15844367 # gold
+              URL="$IURL"
+              ;;
+
+            issue_comment)
+              NUM=$(echo "$EVENT" | jq -r '.issue.number')
+              BODY=$(echo "$EVENT" | jq -r '.comment.body' | sed ':a;N;$!ba;s/\n/\\n/g')
+              CURL=$(echo "$EVENT" | jq -r '.comment.html_url')
+              TITLE="Issue #$NUM comment by $ACTOR"
+              DESC="$(printf "%s" "$BODY")\n$CURL"
+              COLOR=15844367
+              URL="$CURL"
+              ;;
+
+            release)
+              ACTION=$(echo "$EVENT" | jq -r '.action')
+              TAG=$(echo "$EVENT" | jq -r '.release.tag_name')
+              RURL=$(echo "$EVENT" | jq -r '.release.html_url')
+              TITLE="Release $TAG $ACTION"
+              DESC="$RURL"
+              COLOR=5763719 # blurple
+              URL="$RURL"
+              ;;
+
+            discussion)
+              ACTION=$(echo "$EVENT" | jq -r '.action')
+              TITLE_D=$(echo "$EVENT" | jq -r '.discussion.title')
+              DURL=$(echo "$EVENT" | jq -r '.discussion.html_url')
+              TITLE="Discussion $ACTION"
+              DESC="**$TITLE_D**\n$DURL"
+              COLOR=3447003
+              URL="$DURL"
+              ;;
+
+            discussion_comment)
+              TITLE_D=$(echo "$EVENT" | jq -r '.discussion.title')
+              BODY=$(echo "$EVENT" | jq -r '.comment.body' | sed ':a;N;$!ba;s/\n/\\n/g')
+              CURL=$(echo "$EVENT" | jq -r '.comment.html_url')
+              TITLE="Discussion comment by $ACTOR"
+              DESC="**$TITLE_D**\n$(printf "%s" "$BODY")\n$CURL"
+              COLOR=3447003
+              URL="$CURL"
+              ;;
+
+            create)
+              REF_TYPE=$(echo "$EVENT" | jq -r '.ref_type')
+              REFV=$(echo "$EVENT" | jq -r '.ref')
+              TITLE="Created $REF_TYPE: $REFV"
+              DESC="$URL_REPO"
+              COLOR=3066993
+              URL="$URL_REPO"
+              ;;
+
+            delete)
+              REF_TYPE=$(echo "$EVENT" | jq -r '.ref_type')
+              REFV=$(echo "$EVENT" | jq -r '.ref')
+              TITLE="Deleted $REF_TYPE: $REFV"
+              DESC="$URL_REPO"
+              COLOR=15158332 # red
+              URL="$URL_REPO"
+              ;;
+
+            fork)
+              FORKER=$(echo "$EVENT" | jq -r '.forkee.owner.login')
+              FURL=$(echo "$EVENT" | jq -r '.forkee.html_url')
+              TITLE="Repository forked by $FORKER"
+              DESC="$FURL"
+              COLOR=3066993
+              URL="$FURL"
+              ;;
+
+            watch)
+              TITLE="⭐ Star added"
+              DESC="**$ACTOR** starred **$REPO**\n$URL_REPO/stargazers"
+              COLOR=16776960 # yellow
+              URL="$URL_REPO/stargazers"
+              ;;
+
+            *)
+              TITLE="Event: $EVNAME"
+              DESC="$URL_REPO"
+              COLOR=9807270
+              URL="$URL_REPO"
+              ;;
+          esac
+
+          # Build Discord embed payload (keeps it clean and under 2000 chars)
+          JSON=$(jq -n \
+            --arg username "GitHub" \
+            --arg title "$TITLE" \
+            --arg desc "$DESC" \
+            --arg url "$URL" \
+            --argjson color "$COLOR" \
+            '{username:$username, embeds:[{title:$title, description:$desc, url:$url, color:$color}]}' )
+
+          echo "payload=$JSON" >> $GITHUB_OUTPUT
+
+      - name: Send to Discord
+        env:
+          PAYLOAD: ${{ steps.build.outputs.payload }}
+        run: |
+          curl -sS -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK" | cat
+
