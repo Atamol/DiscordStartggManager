@@ -53,8 +53,9 @@ jobs:
           case "$EVNAME" in
 
             push)
-                          COMMITS=$(echo "$EVENT" | jq -r '.commits[]? | "- [`\(.id[0:7])`]
-            (\(.url)) \(.message|gsub("\r?\n";" "))"')
+                          COMMIT_COUNT=$(echo "$EVENT" | jq '.commits | length')
+                          
+                          COMMITS=$(echo "$EVENT" | jq -r '.commits[]? | "- [`\(.id[0:7])`](\(.url))\n  \(.message|gsub("\r?\n";" "))"')
                           [ -z "$COMMITS" ] && COMMITS="No new commits."
 
                           TITLE="Push to $REFNAME"
@@ -63,12 +64,13 @@ jobs:
                           DESCRIPTION="**[$REPO]($URL_REPO)** was updated by **$ACTOR**."
                           FIELDS_JSON=$(jq -n \
                             --arg commits "$COMMITS" \
+                            --arg commit_count "$COMMIT_COUNT" \
                             --arg compare_url "$(echo "$EVENT" | jq -r '.compare')" \
                             '[{
                               "name": "Compare", "value": "[View Changes](\($compare_url))", "inline": true
                             }, {
-                              "name": "Commits (\($commits | split("\n") | length))",
-                              "value": (if $commits == "No new commits." then $commits else $commits end)
+                              "name": "Commits (\($commit_count))",
+                              "value": $commits
                             }]')
                           ;;
                                 
