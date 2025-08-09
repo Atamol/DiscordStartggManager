@@ -56,7 +56,7 @@ jobs:
                           COMMIT_COUNT=$(echo "$EVENT" | jq '.commits | length')
                           COMPARE_URL=$(echo "$EVENT" | jq -r '.compare')
 
-                          TITLE_LINE="[[${REPO}:${REFNAME}] ${COMMIT_COUNT} new commits](${COMPARE_URL})"
+                          TITLE_LINE="**[[${REPO}:${REFNAME}] ${COMMIT_COUNT} new commits](${COMPARE_URL})**"
 
                           AUTHOR_LINE="by ${ACTOR}"
 
@@ -68,7 +68,7 @@ jobs:
                           TITLE=""
                           URL=""
                           FIELDS_JSON='[]'
-                          COLOR=2829617 # Discordのデフォルトに近いグレー
+                          COLOR=2829617
                           ;;
                                 
             pull_request)
