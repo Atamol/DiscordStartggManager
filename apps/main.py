@@ -4,6 +4,7 @@ import json
 import re
 import requests
 import functools
+import logging
 from typing import Optional
 
 import discord
@@ -12,6 +13,12 @@ from discord.ext import tasks, commands
 
 from dotenv import load_dotenv
 load_dotenv()
+
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
+logger = logging.getLogger("DiscordStartggManager")
 
 DISCORD_BOT_TOKEN  = os.getenv("DISCORD_BOT_TOKEN")
 STARTGG_API_TOKEN  = os.getenv("STARTGG_API_TOKEN")
@@ -437,19 +444,19 @@ async def post_announce(set_node: dict, station: str):
     slots = set_node.get("slots", [])
 
     if len(slots) < 2 or not all(slot.get("entrant") for slot in slots):
-        print(f"[WARNING] 対戦者が揃っていないためスキップしました: set_id = {set_id}")
+        logger.warning(f"[WARNING] 対戦者が揃っていないためスキップしました: set_id = {set_id}")
         return
 
     channel = bot.get_channel(DISCORD_CHANNEL_ID)
     if not channel:
-        print("[ERROR] チャンネルが取得できません。")
+        logger.error("[ERROR] チャンネルが取得できません。")
         return
 
     try:
         p1_part = slots[0]["entrant"]["participants"][0]
         p2_part = slots[1]["entrant"]["participants"][0]
     except (KeyError, IndexError, TypeError) as e:
-        print(f"[WARNING] スロット情報が不完全です: {e}")
+        logger.warning(f"[WARNING] スロット情報が不完全です: {e}")
         return
 
     mention1 = mention(p1_part)
@@ -517,12 +524,12 @@ async def poll_sets():
         try:
             data = await gql_async(QUERY_SETS, {"slug": TOURNAMENT_SLUG, "page": page})
         except Exception as e:
-            print("GraphQL error:", e)
+            logger.error("GraphQL error:", e)
             await asyncio.sleep(2)
             break
 
         if "data" not in data:
-            print("GraphQL: data missing", data.get("errors"))
+            logger.error("GraphQL: data missing", data.get("errors"))
             await asyncio.sleep(2)
             break
 
@@ -623,15 +630,15 @@ async def on_ready():
     await bot.wait_until_ready()
     try:
         synced = await bot.tree.sync()
-        print(f"✅ スラッシュコマンド {len(synced)}個 を同期しました。")
+        logger.info(f"✅ スラッシュコマンド {len(synced)}個 を同期しました。")
     except Exception as e:
-        print(f"[ERROR] スラッシュコマンドの同期に失敗: {e}")
+        logger.error(f"[ERROR] スラッシュコマンドの同期に失敗: {e}")
 
-    print(f"✅ 通知するチャンネル = {DISCORD_CHANNEL_ID}")
+    logger.info(f"✅ 通知するチャンネル = {DISCORD_CHANNEL_ID}")
 
     poll_sets.start()
 
-    print(f"Logged in as {bot.user} (ID: {bot.user.id})")
+    logger.info(f"Logged in as {bot.user} (ID: {bot.user.id})")
 
 if __name__ == "__main__":
     bot.run(DISCORD_BOT_TOKEN)
