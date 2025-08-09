@@ -52,14 +52,47 @@ jobs:
 
           case "$EVNAME" in
             push)
-              COMMITS=$(echo "$EVENT" | jq -r '.commits[]? | "- `\(.id[0:7])` \(.message|gsub("\r?\n";" ")) (by \(.author.username // .author.name))"')
-              [ -z "$COMMITS" ] && COMMITS="(no commit details)"
-              TITLE="Push to $REFNAME"
-              DESC="**$REPO** was updated by **$ACTOR** on \`$REFNAME\`:\n$COMMITS\n\nCompare: $(echo "$EVENT" | jq -r '.compare')"
-              COLOR=3066993 # green
-              URL="$URL_REPO/commits/$REFNAME"
-              ;;
+                          COMMITS=$(echo "$EVENT" | jq -r '.commits[]? | "- [`\(.id[0:7])`]
+            (\(.url)) \(.message|gsub("\r?\n";" "))"')
+                          [ -z "$COMMITS" ] && COMMITS="No new commits."
 
+                          JSON=$(jq -cn \
+                            --arg username "GitHub" \
+                            --arg url "$URL_REPO/commits/$REFNAME" \
+                            --argjson color 3066993 \
+                            --arg title "Push to $REFNAME" \
+                            --arg description "**[$REPO]($URL_REPO)** was updated." \
+                            --arg commits "$COMMITS" \
+                            --arg actor "$ACTOR" \
+                            --arg compare_url "$(echo "$EVENT" | jq -r '.compare')" \
+                            '{
+                              username: $username,
+                              embeds: [{
+                                title: $title,
+                                description: $description,
+                                url: $url,
+                                color: $color,
+                                fields: [
+                                  {
+                                    name: "Pushed by",
+                                    value: $actor,
+                                    inline: true
+                                  },
+                                  {
+                                    name: "Compare",
+                                    value: "[View Changes](\($compare_url))",
+                                    inline: true
+                                  },
+                                  {
+                                    name: "Commits (" + ($commits | split("\n") | length | tostring) + ")",
+                                    value: (if $commits == "No new commits." then $commits else $commits end)
+                                  }
+                                ]
+                              }]
+                            }')
+                          echo "payload=$JSON" >> $GITHUB_OUTPUT
+                          ;;
+                                
             pull_request)
               ACTION=$(echo "$EVENT" | jq -r '.action')
               PRNUM=$(echo "$EVENT" | jq -r '.number')
@@ -68,36 +101,29 @@ jobs:
               MERGED=$(echo "$EVENT" | jq -r '.pull_request.merged')
               BASE=$(echo "$EVENT" | jq -r '.pull_request.base.ref')
               HEAD=$(echo "$EVENT" | jq -r '.pull_request.head.ref')
-              TITLE="PR #$PRNUM $ACTION"
+
+              STATUS="Opened"
+              COLOR=15105570 # orange
               if [ "$ACTION" = "closed" ] && [ "$MERGED" = "true" ]; then
-                TITLE="PR #$PRNUM merged"
-                COLOR=3447003 # blue
-              else
-                COLOR=15105570 # orange
+                STATUS="Merged"
+                COLOR=5763719 # blurple
+              elif [ "$ACTION" = "closed" ]; then
+                STATUS="Closed"
+                COLOR=15158332 # red
               fi
-              DESC="**$PRTITLE**\n\`$HEAD\` → \`$BASE\`\n$PRURL"
-              URL="$PRURL"
-              ;;
 
-            pull_request_review)
-              ACTION=$(echo "$EVENT" | jq -r '.action')
-              PRNUM=$(echo "$EVENT" | jq -r '.pull_request.number')
-              STATE=$(echo "$EVENT" | jq -r '.review.state')
-              PRURL=$(echo "$EVENT" | jq -r '.pull_request.html_url')
-              TITLE="PR #$PRNUM review $ACTION ($STATE)"
-              DESC="$PRURL"
-              COLOR=10181046 # purple
+              TITLE="PR #$PRNUM: $PRTITLE"
               URL="$PRURL"
-              ;;
-
-            pull_request_review_comment)
-              PRNUM=$(echo "$EVENT" | jq -r '.pull_request.number')
-              BODY=$(echo "$EVENT" | jq -r '.comment.body' | sed ':a;N;$!ba;s/\n/\\n/g')
-              URLC=$(echo "$EVENT" | jq -r '.comment.html_url')
-              TITLE="PR #$PRNUM review comment"
-              DESC="$(printf "%s" "$BODY")\n$URLC"
-              COLOR=10181046
-              URL="$URLC"
+              DESCRIPTION="Pull Request $ACTION by **$ACTOR**."
+              FIELDS_JSON=$(jq -n \
+                --arg head "$HEAD" --arg base "$BASE" --arg status "$STATUS" \
+                '[{
+                  "name": "From", "value": "`" + $head + "`", "inline": true
+                }, {
+                  "name": "To", "value": "`" + $base + "`", "inline": true
+                }, {
+                  "name": "Status", "value": $status, "inline": true
+                }]')
               ;;
 
             issues)
@@ -105,104 +131,130 @@ jobs:
               NUM=$(echo "$EVENT" | jq -r '.issue.number')
               TITLE_ISS=$(echo "$EVENT" | jq -r '.issue.title')
               IURL=$(echo "$EVENT" | jq -r '.issue.html_url')
-              TITLE="Issue #$NUM $ACTION"
-              DESC="**$TITLE_ISS**\n$IURL"
-              COLOR=15844367 # gold
-              URL="$IURL"
-              ;;
+              ASSIGNEES=$(echo "$EVENT" | jq -r '.issue.assignees[]?.login // "None"' | paste -sd, -)
+              LABELS=$(echo "$EVENT" | jq -r '.issue.labels[]?.name // "None"' | paste -sd, -)
 
-            issue_comment)
-              NUM=$(echo "$EVENT" | jq -r '.issue.number')
-              BODY=$(echo "$EVENT" | jq -r '.comment.body' | sed ':a;N;$!ba;s/\n/\\n/g')
-              CURL=$(echo "$EVENT" | jq -r '.comment.html_url')
-              TITLE="Issue #$NUM comment by $ACTOR"
-              DESC="$(printf "%s" "$BODY")\n$CURL"
-              COLOR=15844367
-              URL="$CURL"
+              TITLE="Issue #$NUM: $TITLE_ISS"
+              URL="$IURL"
+              COLOR=15844367 # gold
+              DESCRIPTION="Issue $ACTION by **$ACTOR**."
+              FIELDS_JSON=$(jq -n \
+                --arg assignees "$ASSIGNEES" --arg labels "$LABELS" \
+                '[{
+                  "name": "Assignees", "value": $assignees, "inline": true
+                }, {
+                  "name": "Labels", "value": $labels, "inline": true
+                }]')
               ;;
 
             release)
               ACTION=$(echo "$EVENT" | jq -r '.action')
               TAG=$(echo "$EVENT" | jq -r '.release.tag_name')
+              NAME=$(echo "$EVENT" | jq -r '.release.name')
               RURL=$(echo "$EVENT" | jq -r '.release.html_url')
-              TITLE="Release $TAG $ACTION"
-              DESC="$RURL"
-              COLOR=5763719 # blurple
+
+              TITLE="Release $ACTION: $NAME"
               URL="$RURL"
+              COLOR=3447003 # blue
+              DESCRIPTION="A new release has been created by **$ACTOR**."
+              FIELDS_JSON=$(jq -n \
+                --arg tag "$TAG" \
+                '[{
+                  "name": "Tag", "value": "`" + $tag + "`", "inline": true
+                }]')
               ;;
+            
+            # コメント系 (本文をdescriptionに入れる)
 
-            discussion)
-              ACTION=$(echo "$EVENT" | jq -r '.action')
-              TITLE_D=$(echo "$EVENT" | jq -r '.discussion.title')
-              DURL=$(echo "$EVENT" | jq -r '.discussion.html_url')
-              TITLE="Discussion $ACTION"
-              DESC="**$TITLE_D**\n$DURL"
-              COLOR=3447003
-              URL="$DURL"
-              ;;
-
-            discussion_comment)
-              TITLE_D=$(echo "$EVENT" | jq -r '.discussion.title')
-              BODY=$(echo "$EVENT" | jq -r '.comment.body' | sed ':a;N;$!ba;s/\n/\\n/g')
+            issue_comment | pull_request_review_comment | discussion_comment)
+              BODY=$(echo "$EVENT" | jq -r '.comment.body' | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g')
               CURL=$(echo "$EVENT" | jq -r '.comment.html_url')
-              TITLE="Discussion comment by $ACTOR"
-              DESC="**$TITLE_D**\n$(printf "%s" "$BODY")\n$CURL"
-              COLOR=3447003
+              CONTEXT_TITLE=""
+              CONTEXT_URL=""
+              if [ "$EVNAME" = "issue_comment" ]; then
+                CONTEXT_TITLE="Issue #$(echo "$EVENT" | jq -r '.issue.number')"
+                CONTEXT_URL=$(echo "$EVENT" | jq -r '.issue.html_url')
+              elif [ "$EVNAME" = "pull_request_review_comment" ]; then
+                CONTEXT_TITLE="PR #$(echo "$EVENT" | jq -r '.pull_request.number')"
+                CONTEXT_URL=$(echo "$EVENT" | jq -r '.pull_request.html_url')
+              else # discussion_comment
+                CONTEXT_TITLE="Discussion: $(echo "$EVENT" | jq -r '.discussion.title')"
+                CONTEXT_URL=$(echo "$EVENT" | jq -r '.discussion.html_url')
+              fi
+              
+              TITLE="New Comment by $ACTOR"
               URL="$CURL"
+              COLOR=10181046 # purple
+              # 本文が長い可能性があるのでdescriptionに入れる
+              DESCRIPTION=$(printf "%s" "$BODY" | cut -c 1-1500)$(if [ $(printf "%s" "$BODY" | wc -c) -gt 1500 ]; then echo "..."; fi)
+              FIELDS_JSON=$(jq -n \
+                --arg ctx_title "$CONTEXT_TITLE" \
+                --arg ctx_url "$CONTEXT_URL" \
+                '[{ "name": "In Response To", "value": "[" + $ctx_title + "](" + $ctx_url + ")" }]')
               ;;
 
+            # シンプルなイベント (Fieldsなし)
+            
             create)
-              REF_TYPE=$(echo "$EVENT" | jq -r '.ref_type')
-              REFV=$(echo "$EVENT" | jq -r '.ref')
-              TITLE="Created $REF_TYPE: $REFV"
-              DESC="$URL_REPO"
-              COLOR=3066993
+              TITLE="Created $(echo "$EVENT" | jq -r '.ref_type'): $(echo "$EVENT" | jq -r '.ref')"
+              DESCRIPTION="Created by **$ACTOR**."
               URL="$URL_REPO"
+              COLOR=3066993 # green
               ;;
-
             delete)
-              REF_TYPE=$(echo "$EVENT" | jq -r '.ref_type')
-              REFV=$(echo "$EVENT" | jq -r '.ref')
-              TITLE="Deleted $REF_TYPE: $REFV"
-              DESC="$URL_REPO"
-              COLOR=15158332 # red
+              TITLE="Deleted $(echo "$EVENT" | jq -r '.ref_type'): $(echo "$EVENT" | jq -r '.ref')"
+              DESCRIPTION="Deleted by **$ACTOR**."
               URL="$URL_REPO"
+              COLOR=15158332 # red
               ;;
-
             fork)
               FORKER=$(echo "$EVENT" | jq -r '.forkee.owner.login')
               FURL=$(echo "$EVENT" | jq -r '.forkee.html_url')
-              TITLE="Repository forked by $FORKER"
-              DESC="$FURL"
-              COLOR=3066993
+              TITLE="Repository Forked"
               URL="$FURL"
+              COLOR=8359053 # greyple
+              DESCRIPTION="**$REPO** was forked by **[$FORKER]($FURL)**."
               ;;
-
             watch)
-              TITLE="⭐ Star added"
-              DESC="**$ACTOR** starred **$REPO**\n$URL_REPO/stargazers"
-              COLOR=16776960 # yellow
+              TITLE="⭐ New Star!"
               URL="$URL_REPO/stargazers"
+              COLOR=16776960 # yellow
+              DESCRIPTION="**$ACTOR** starred **[$REPO]($URL_REPO)**."
               ;;
 
+            # 未定義のマイナーイベント用のフォールバック
+            
             *)
               TITLE="Event: $EVNAME"
-              DESC="$URL_REPO"
-              COLOR=9807270
+              DESCRIPTION="An unhandled event was triggered by **$ACTOR**."
               URL="$URL_REPO"
+              COLOR=9807270
               ;;
           esac
 
-          # Build Discord embed payload (keeps it clean and under 2000 chars)
-          JSON=$(jq -cn \
+          # 組み立てた情報から最終的なJSONペイロードを生成
+
+          FINAL_JSON=$(jq -cn \
             --arg username "GitHub" \
             --arg title "$TITLE" \
-            --arg desc "$DESC" \
+            --arg description "$DESCRIPTION" \
             --arg url "$URL" \
             --argjson color "$COLOR" \
-            '{username:$username, embeds:[{title:$title, description:$desc, url:$url, color:$color}]}' )
+            --argjson fields "$FIELDS_JSON" \
+            '{
+              "username": $username,
+              "embeds": [{
+                "title": $title,
+                "description": $description,
+                "url": $url,
+                "color": $color,
+                "fields": $fields,
+                "footer": { "text": $ENV.REPO },
+                "timestamp": now | todateiso8601
+              }]
+            }')
 
-          echo "payload=$JSON" >> $GITHUB_OUTPUT
+          echo "payload=$FINAL_JSON" >> $GITHUB_OUTPUT
 
       - name: Send to Discord
         env:
