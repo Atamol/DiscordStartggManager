@@ -56,7 +56,7 @@ jobs:
                           COMMIT_COUNT=$(echo "$EVENT" | jq '.commits | length')
                           COMPARE_URL=$(echo "$EVENT" | jq -r '.compare')
 
-                          TITLE_LINE="### [${REPO}:${REFNAME}] ${COMMIT_COUNT} new commits](${COMPARE_URL})"
+                          TITLE_LINE="### [[${REPO}:${REFNAME}] ${COMMIT_COUNT} new commits](${COMPARE_URL})"
 
                           AUTHOR_LINE="_by ${ACTOR}_"
 
