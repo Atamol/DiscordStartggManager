@@ -55,42 +55,20 @@ jobs:
                           COMMITS=$(echo "$EVENT" | jq -r '.commits[]? | "- [`\(.id[0:7])`]
             (\(.url)) \(.message|gsub("\r?\n";" "))"')
                           [ -z "$COMMITS" ] && COMMITS="No new commits."
-
-                          JSON=$(jq -cn \
-                            --arg username "GitHub" \
-                            --arg url "$URL_REPO/commits/$REFNAME" \
-                            --argjson color 3066993 \
-                            --arg title "Push to $REFNAME" \
-                            --arg description "**[$REPO]($URL_REPO)** was updated." \
+                          
+                          TITLE="Push to $REFNAME"
+                          URL="$URL_REPO/commits/$REFNAME"
+                          COLOR=3066993 # green
+                          DESCRIPTION="**[$REPO]($URL_REPO)** was updated by **$ACTOR**."
+                          FIELDS_JSON=$(jq -n \
                             --arg commits "$COMMITS" \
-                            --arg actor "$ACTOR" \
                             --arg compare_url "$(echo "$EVENT" | jq -r '.compare')" \
-                            '{
-                              username: $username,
-                              embeds: [{
-                                title: $title,
-                                description: $description,
-                                url: $url,
-                                color: $color,
-                                fields: [
-                                  {
-                                    name: "Pushed by",
-                                    value: $actor,
-                                    inline: true
-                                  },
-                                  {
-                                    name: "Compare",
-                                    value: "[View Changes](\($compare_url))",
-                                    inline: true
-                                  },
-                                  {
-                                    name: "Commits (" + ($commits | split("\n") | length | tostring) + ")",
-                                    value: (if $commits == "No new commits." then $commits else $commits end)
-                                  }
-                                ]
-                              }]
-                            }')
-                          echo "payload=$JSON" >> $GITHUB_OUTPUT
+                            '[{
+                              "name": "Compare", "value": "[View Changes](\($compare_url))", "inline": true
+                            }, {
+                              "name": "Commits (" + ($commits | split("\n") | length | tostring) + ")",
+                              "value": (if $commits == "No new commits." then $commits else $commits end)
+                            }]')
                           ;;
                                 
             pull_request)
