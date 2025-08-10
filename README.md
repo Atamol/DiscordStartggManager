@@ -1,4 +1,6 @@
-[English Ver.](https://github.com/Atamol/DiscordStartggManager/blob/main/README-EN.md)
+## [📄 English ver. here](https://github.com/Atamol/DiscordStartggManager/blob/main/README-EN.md)
+
+# <img src="https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/66e3d80db9971f10a9757c99_Symbol.svg" width="40"/> [公式Discord](https://discord.gg/VtWxvdXz5H)
 
 # DEMO
 
@@ -8,8 +10,6 @@ https://github.com/user-attachments/assets/fd001337-2c11-4234-ad85-2ae82752e80b
 
 **DiscordStartggManager** は，Discord 上で start.gg トーナメントの試合進行をスムーズにサポートするための Bot です．  
 主に**大乱闘スマッシュブラザーズシリーズ**を想定して作られています．
-
-### [ユーザー・開発者向けDiscord](https://discord.gg/VtWxvdXz5H)
 
 | 機能 | 説明 |
 | --- | --- |

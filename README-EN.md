@@ -1,4 +1,6 @@
-[日本語 / Japanese Ver.](https://github.com/Atamol/DiscordStartggManager/blob/main/README.md)
+## [📄 日本語 ver.](https://github.com/Atamol/DiscordStartggManager/blob/main/README-EN.md)
+
+# <img src="https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/66e3d80db9971f10a9757c99_Symbol.svg" width="40"/> [Official Discord](https://discord.gg/VtWxvdXz5H)
 
 Translated by OpenAI.
 
@@ -10,8 +12,6 @@ https://github.com/user-attachments/assets/fd001337-2c11-4234-ad85-2ae82752e80b
 
 **DiscordStartggManager** is a Discord bot designed to make running tournaments on [start.gg](https://start.gg/) smoother and more efficient.  
 This project’s made with the **Super Smash Bros.** series in mind.  
-
-### [Official Discord server for users and developers](https://discord.gg/VtWxvdXz5H)
 
 | Feature | Description |
 | --- | --- |
