@@ -42,7 +42,7 @@ POLL_INTERVAL       = 2
 
 initial_scan_done = False
 station_map: dict[str, str] = {}
-active_views: dict[str, dict] = {}  # {set_id: {view, slots}}えｍ
+active_views: dict[str, dict] = {}  # {set_id: {view, slots}}
 
 # GraphQL: 参加者の取得
 GET_PARTICIPANTS_QUERY = """
