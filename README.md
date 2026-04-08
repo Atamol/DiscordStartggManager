@@ -35,7 +35,7 @@ https://github.com/user-attachments/assets/fd001337-2c11-4234-ad85-2ae82752e80b
 2. [Diescord Developer Portal](https://discord.com/developers/applications)から，DiscordのBotを作成し，権限の設定を行います．
 3. 作成したBotを運用したいDiscordへ招待します．
 4. `.env`に，必要な情報を設定します．
-5. 13・14行目の`from dotenv import load_dotenv`，`load_dotenv()`をコメントアウトします．
+5. `from dotenv import load_dotenv`，`load_dotenv()`をコメントアウトします．
 6. Dockerコンテナをビルドします．
 7. コンテナを実行します．
 
@@ -45,7 +45,7 @@ https://github.com/user-attachments/assets/fd001337-2c11-4234-ad85-2ae82752e80b
 2. [Diescord Developer Portal](https://discord.com/developers/applications)から，DiscordのBotを作成し，権限の設定を行います．
 3. 作成したBotを運用したいDiscordへ招待します．
 4. `.env`に，必要な情報を設定します．
-5. `apps/main.py`を実行します．
+5. `main.py`を実行します．
 
 # ❗ 協力者を募集しています
 このプロジェクトは，一般公開に向けて個人で地道に開発を進めています．  

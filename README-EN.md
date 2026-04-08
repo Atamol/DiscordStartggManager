@@ -37,7 +37,7 @@ If hosting it yourself sounds tricky, I also offer one-on-one setup support. Fee
 2. Go to the [Discord Developer Portal](https://discord.com/developers/applications), create a bot, and set its permissions.  
 3. Invite the bot to your target Discord server.  
 4. Fill in the required information in the `.env` file.  
-5. Comment out lines 13 and 14: `from dotenv import load_dotenv` and `load_dotenv()`.  
+5. Comment out `from dotenv import load_dotenv` and `load_dotenv()`.  
 6. Build the Docker container.  
 7. Run the container.  
 
@@ -47,7 +47,7 @@ If hosting it yourself sounds tricky, I also offer one-on-one setup support. Fee
 2. Go to the [Discord Developer Portal](https://discord.com/developers/applications), create a bot, and set its permissions.  
 3. Invite the bot to your target Discord server.  
 4. Fill in the required information in the `.env` file.  
-5. Run `apps/main.py`.  
+5. Run `main.py`.  
 
 # ❗ Looking for Collaborators
 This project is being developed solo, step-by-step, with the goal of making it ready for public use.  
