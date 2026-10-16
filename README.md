@@ -1,23 +1,14 @@
-## [📄 English ver. here](https://github.com/Atamol/DiscordStartggManager/blob/main/README-EN.md)
+## [English ver. here](https://github.com/Atamol/DiscordStartggManager/blob/main/README-EN.md)
 
-# <img src="https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/66e3d80db9971f10a9757c99_Symbol.svg" width="40"/> [公式Discord](https://discord.gg/VtWxvdXz5H)
-
-# DEMO
-
-https://github.com/user-attachments/assets/fd001337-2c11-4234-ad85-2ae82752e80b
+#  [公式Discord](https://discord.gg/VtWxvdXz5H)
 
 # DiscordStartggManager
 
-**DiscordStartggManager** は，Discord 上で start.gg トーナメントの試合進行をスムーズにサポートするための Bot です．  
+**DiscordStartggManager** は，Discord 上で start.gg トーナメントの試合進行をスムーズにサポートするための Bot です．
 主に**大乱闘スマッシュブラザーズシリーズ**を想定して作られています．
 
-| 機能 | 説明 |
-| --- | --- |
-| 🎮 試合通知機能	| start.gg上で対戦台が設定されると，Discordにメンション付き対戦カードを送信します |
-| 🔘 スコア入力機能	| Discord上で，ボタンからスコアの入力ができます |
-| ✅ 勝敗確定・完了表示	| スコアを送信すると終了済みマッチとしてマークされ，受付が締め切られます |
-| 🖥️ 対戦台の再登録にも対応	| 台番号が変更された場合，Discordの投稿が自動的に編集されます |
-| 👥 参加者へのロール付与	| 参加者全員に対してロールの付与・削除が可能です（`@everyone`による不参加者へのメンションの防止） |
+
+<video src="./docs/demo_vid_2025-04-24.mp4" controls width="100%"></video>
 
 # 導入方法
 
@@ -48,10 +39,11 @@ https://github.com/user-attachments/assets/fd001337-2c11-4234-ad85-2ae82752e80b
 5. `main.py`を実行します．
 
 # ❗ 協力者を募集しています
-このプロジェクトは，一般公開に向けて個人で地道に開発を進めています．  
 
-→ [公式Discord](https://discord.gg/VtWxvdXz5H)  
+このプロジェクトは，一般公開に向けて個人で地道に開発を進めています．
+
+→ [公式Discord](https://discord.gg/VtWxvdXz5H)
 
 将来的に，Webから簡単に設定を行えるようにしたり，大型大会での運用もできるように最適化させることが目標です．
-バグ報告や機能追加の提案など，どのような形でもご協力いただけると嬉しいです．  
+バグ報告や機能追加の提案など，どのような形でもご協力いただけると嬉しいです．
 開発者からのプルリクエストも歓迎しております．
