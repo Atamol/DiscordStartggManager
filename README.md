@@ -8,7 +8,12 @@
 主に**大乱闘スマッシュブラザーズシリーズ**を想定して作られています．
 
 
-<video src="./docs/demo_vid_2025-04-24.mp4" controls width="100%"></video>
+## DEMO
+
+https://github.com/user-attachments/assets/fd001337-2c11-4234-ad85-2ae82752e80b
+
+[リポジトリ内の動画ファイル（MP4）](./docs/demo_vid_2025-04-24.mp4)
+
 
 # 導入方法
 
